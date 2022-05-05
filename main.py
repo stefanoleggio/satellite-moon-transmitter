@@ -14,5 +14,5 @@ if __name__ == '__main__':
         else:
             output.append(~PRN_SEQUENCE)
         message_bit = message.read(1)
-
+#ciaoooooo
     print(output)
