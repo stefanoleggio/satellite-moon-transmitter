@@ -1,19 +1,50 @@
 if __name__ == '__main__':
 
+    chunk_len = 10 #Size of bit for chunk
+
     message = open("message.bin", "rb")
 
-    PRN_SEQUENCE = 0b0100100101010
+    PRN_SEQUENCE = 0b1000101010010 #Example of PRN sequence
 
-    output = []
+    iter_count = 0
+    eof = False
 
-    message_bit = message.read(1)
+    while(not eof):
 
-    while(message_bit):
-        if(int(message_bit,2)):
-            output.append(PRN_SEQUENCE)
-        else:
-            output.append(~PRN_SEQUENCE)
-        message_bit = message.read(1)
-#ciaoooooo
-#ciao2
-    print(output)
+        chunk = []
+
+        while(iter_count < chunk_len):
+
+            message_bit = message.read(1)
+
+            iter_count += 1
+
+            # Splitting the message in chunks
+            try:
+                chunk.append(int(message_bit))
+            except:
+                eof=True
+                break
+
+
+        if(len(chunk) < 1):
+            break
+        
+        print("Message chunk")
+        print(chunk)
+
+        # Adding PRN
+
+        chunk_PRN = []
+        for message_bit in chunk:
+            if(message_bit):
+                chunk_PRN.append(PRN_SEQUENCE)
+            else:
+                chunk_PRN.append(~PRN_SEQUENCE)
+
+        print("Chunk with PRN")
+        print(chunk_PRN)
+
+        print("\n")
+        
+        iter_count = 0
