@@ -4,7 +4,8 @@ if __name__ == '__main__':
 
     message = open("message.bin", "rb")
 
-    PRN_SEQUENCE = 0b1000101010010 #Example of PRN sequence
+    PRN_SEQUENCE = 0b10010 #Example of PRN sequence
+    PRN_SEQUENCE_INVERSE = 0b01101
 
     iter_count = 0
     eof = False
@@ -21,7 +22,7 @@ if __name__ == '__main__':
 
             # Splitting the message in chunks
             try:
-                chunk.append(int(message_bit))
+                chunk.append(int(message_bit,2))
             except:
                 eof=True
                 break
@@ -31,7 +32,7 @@ if __name__ == '__main__':
             break
         
         print("Message chunk")
-        print(chunk)
+        print(list(map(lambda x: bin(x)[2:], chunk)))
 
         # Adding PRN
 
@@ -40,10 +41,10 @@ if __name__ == '__main__':
             if(message_bit):
                 chunk_PRN.append(PRN_SEQUENCE)
             else:
-                chunk_PRN.append(~PRN_SEQUENCE)
+                chunk_PRN.append(PRN_SEQUENCE_INVERSE)
 
         print("Chunk with PRN")
-        print(chunk_PRN)
+        print(list(map(lambda x: bin(x)[2:], chunk_PRN)))
 
         print("\n")
         
