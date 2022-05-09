@@ -1,7 +1,6 @@
 import json
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal
 
 def signalPlot(data, T, total_duration, title):
     t = np.arange(0, total_duration, T)
@@ -58,7 +57,7 @@ if __name__ == '__main__':
                 chunk_PRN.append(PRN_SEQUENCE_INVERSE)
 
         print("Chunk with PRN")
-        print(list(map(lambda x: bin(x)[2:], chunk_PRN)))
+        print(list(map(lambda x: bin(x)[2:15] + "...", chunk_PRN)))
 
         print("\n")
 
