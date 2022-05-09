@@ -18,7 +18,14 @@ if __name__ == '__main__':
 
     print("Lenght of the code sequence: " + str(code_lenght))
 
-    code_sequence_inverse = bin((1 << code_lenght) - 1 - int(code_sequence,2))[2:]
+    start_mask = ''
+
+    for code_sequence_bit in code_sequence:
+        if(code_sequence_bit != '1'):
+            break
+        start_mask += '0'
+
+    code_sequence_inverse = start_mask + bin((1 << code_lenght) - 1 - int(code_sequence,2))[2:]
 
     output = {
         'code_id': code_id,

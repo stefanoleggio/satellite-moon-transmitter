@@ -16,8 +16,8 @@ if __name__ == '__main__':
     message = open("message.bin", "rb")
     PRNCodes = json.load(open("PRNCodes.json", "r"))
 
-    PRN_SEQUENCE = int(PRNCodes['code_sequence'],2)
-    PRN_SEQUENCE_INVERSE = int(PRNCodes['code_sequence_inverse'],2)
+    PRN_SEQUENCE = PRNCodes['code_sequence']
+    PRN_SEQUENCE_INVERSE = PRNCodes['code_sequence_inverse']
 
     iter_count = 0
     eof = False
@@ -57,7 +57,7 @@ if __name__ == '__main__':
                 chunk_PRN.append(PRN_SEQUENCE_INVERSE)
 
         print("Chunk with PRN")
-        print(list(map(lambda x: bin(x)[2:15] + "...", chunk_PRN)))
+        print(list(map(lambda x: x[:15] + "...", chunk_PRN)))
 
         print("\n")
 
