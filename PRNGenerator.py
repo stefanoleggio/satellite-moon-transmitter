@@ -18,8 +18,6 @@ if __name__ == '__main__':
 
     print("Lenght of the code sequence: " + str(code_lenght))
 
-    mask = bin((1 << code_lenght) - 1)[2:]
-
     code_sequence_inverse = bin((1 << code_lenght) - 1 - int(code_sequence,2))[2:]
 
     output = {

@@ -1,4 +1,14 @@
 import json
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import signal
+
+def signalPlot(data, T, total_duration, title):
+    t = np.arange(0, total_duration, T)
+    plt.step(t, data)
+    plt.xticks(t)
+    plt.title(title)
+    plt.show()
 
 if __name__ == '__main__':
 
@@ -12,6 +22,7 @@ if __name__ == '__main__':
 
     iter_count = 0
     eof = False
+    draw_plot = False #Flag for signal plot of the first chunk, change to True for plotting
 
     while(not eof):
 
@@ -50,5 +61,11 @@ if __name__ == '__main__':
         print(list(map(lambda x: bin(x)[2:], chunk_PRN)))
 
         print("\n")
+
+        ###
+
+        if(draw_plot):
+            signalPlot(chunk,1,chunk_len, "Message")
+            draw_plot = False
         
         iter_count = 0
