@@ -1,11 +1,14 @@
+import json
+
 if __name__ == '__main__':
 
     chunk_len = 10 #Size of bit for chunk
 
     message = open("message.bin", "rb")
+    PRNCodes = json.load(open("PRNCodes.json", "r"))
 
-    PRN_SEQUENCE = 0b10010 #Example of PRN sequence
-    PRN_SEQUENCE_INVERSE = 0b01101
+    PRN_SEQUENCE = int(PRNCodes['code_sequence'],2)
+    PRN_SEQUENCE_INVERSE = int(PRNCodes['code_sequence_inverse'],2)
 
     iter_count = 0
     eof = False
