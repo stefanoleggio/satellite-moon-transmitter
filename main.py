@@ -56,9 +56,9 @@ if __name__ == '__main__':
         chunk_PRN = []
         for message_bit in chunk:
             if(message_bit):
-                chunk_PRN.append(PRN_SEQUENCE)
-            else:
                 chunk_PRN.append(PRN_SEQUENCE_INVERSE)
+            else:
+                chunk_PRN.append(PRN_SEQUENCE)
 
         print("Chunk with PRN")
         print(list(map(lambda x: x[:15] + "...", chunk_PRN)))
