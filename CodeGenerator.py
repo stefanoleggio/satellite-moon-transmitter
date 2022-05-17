@@ -35,11 +35,11 @@ if __name__ == '__main__':
 
     for bit in prn_sequence:
         if(bit == '1'):
-            boc_sequence += '+1-1'
-            boc_sequence_inverse += '-1+1'
+            boc_sequence += '+1 -1 '
+            boc_sequence_inverse += '-1 +1 '
         else:
-            boc_sequence += '-1+1'
-            boc_sequence_inverse += '+1-1'
+            boc_sequence += '-1 +1 '
+            boc_sequence_inverse += '+1 -1 '
 
     output = {
         'prn_id': code_id,
