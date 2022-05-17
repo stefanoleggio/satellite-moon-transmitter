@@ -18,10 +18,12 @@ if __name__ == '__main__':
     chunk_len = 10 # Bits for chunk - TODO: symbol rate as a variable multiple of the PRN duration
 
     message = open("message.bin", "rb")
-    PRNCodes = json.load(open("PRNCodes.json", "r"))
+    codes = json.load(open("PRNCodes.json", "r"))
 
-    PRN_SEQUENCE = PRNCodes['code_sequence']
-    PRN_SEQUENCE_INVERSE = PRNCodes['code_sequence_inverse']
+    PRN_SEQUENCE = codes['prn_sequence']
+    PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
+    BOC_SEQUENCE = codes['boc_sequence']
+    BOC_SEQUENCE_INVERSE = codes['boc_sequence_inverse']
 
     bit_count = 0
     chunk_count = 0
@@ -51,6 +53,8 @@ if __name__ == '__main__':
         print("Message chunk " + str(chunk_count))
         print(list(map(lambda x: bin(x)[2:], chunk)))
 
+        print("\n")
+
         # Adding PRN
 
         chunk_PRN = []
@@ -65,9 +69,34 @@ if __name__ == '__main__':
 
         print("\n")
 
+        ## BOC Modulation
+
+        chunk_boc = []
+        for message_bit in chunk:
+            if(message_bit):
+                chunk_boc.append(BOC_SEQUENCE_INVERSE)
+            else:
+                chunk_boc.append(BOC_SEQUENCE)
+
+
+        print("Chunk with BOC")
+        print(list(map(lambda x: x[:15] + "...", chunk_boc)))
+
+        print("\n")
+
         if(chunk_count == 0 and len(sys.argv)>1 and sys.argv[1] == "-p"):
+
+            prn_to_plot = chunk_PRN[0][:chunk_len]
+            prn_to_plot_list = []
+
+            for char in prn_to_plot:
+                prn_to_plot_list.append(int(char,2))
+    
             signalPlot(chunk,1,chunk_len, "Message")
+            signalPlot(prn_to_plot_list,1, chunk_len, "Message with PRN")
+            #signalPlot(boc_to_plot_list,1, chunk_len, "Message modulated with BOC")
             draw_plot = False
+
         
         chunk_count += 1
         bit_count = 0
