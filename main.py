@@ -26,6 +26,11 @@ if __name__ == '__main__':
     BOC_SEQUENCE = codes['boc_sequence']
     BOC_SEQUENCE_INVERSE = codes['boc_sequence_inverse']
 
+    BOLTZMANN_COSTANT = 1.3809649 * pow(10,-23)
+    TEMPERATURE = 300
+    BAND = 1.023 * pow(10,6)
+    N_0 = BOLTZMANN_COSTANT*TEMPERATURE
+
     bit_count = 0
     chunk_count = 0
     eof = False
@@ -87,19 +92,32 @@ if __name__ == '__main__':
 
         ## AWGN
 
+        output = []
+
         for message_bit in chunk_boc:
-            awgn_vector = np.random.randn(len(message_bit)) + 1j * np.random.randn(len(message_bit))
-            path_loss_vector = np.random.uniform(0,0.6,len(message_bit))
+
+
             message_bit_splitted = message_bit.split(" ")
-            #message_bit_splitted_casted =[int(x) for x in message_bit_splitted]
-            #print(message_bit_splitted[:10])
-            #print(message_bit_splitted[0])
+            awgn_vector = (np.random.randn(len(message_bit_splitted)-1) + 1j*np.random.randn(len(message_bit_splitted)-1)) * np.sqrt(N_0*BAND/2)
+            path_loss_vector = np.random.uniform(0,pow(10, -8),len(message_bit_splitted)-1)
 
-            #message_bit_splitted_casted = [int(x) for x in message_bit_splitted]
+            #TODO: fix char missing ''
+            message_bit_casted = []
 
-            #print(message_bit_splitted_casted)
-            #print(message_bit_splitted)
-            #print(path_loss_vector[:10])
+            for x in message_bit_splitted:
+                if(x != ''):
+                    message_bit_casted.append(int(x))
+
+            result = message_bit_casted * path_loss_vector + awgn_vector
+
+            #plt.plot(np.real(result),np.imag(result), '.')
+            #plt.show()
+
+            output.append(result)
+
+        print("Chunk with AWGN and PATH LOSS")
+        print(output)
+        print("\n")
 
         if(chunk_count == 0 and len(sys.argv)>1 and sys.argv[1] == "-p"):
 
