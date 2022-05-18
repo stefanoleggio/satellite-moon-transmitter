@@ -19,7 +19,7 @@ if __name__ == '__main__':
     chunk_len = 10 # Bits for chunk - TODO: symbol rate as a variable multiple of the PRN duration
 
     message = open("message.bin", "rb")
-    codes = json.load(open("PRNCodes.json", "r"))
+    codes = json.load(open("codes.json", "r"))
 
     PRN_SEQUENCE = codes['prn_sequence']
     PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
@@ -104,8 +104,11 @@ if __name__ == '__main__':
                      
             boc_values_message_bit_channel = boc_values_message_bit * path_loss_vector + awgn_vector
 
-            #plt.plot(np.real(boc_values_message_bit_channel),np.imag(boc_values_message_bit_channel), '.')
-            #plt.show()
+            """
+            plt.plot(np.real(boc_values_message_bit_channel),np.imag(boc_values_message_bit_channel), '.')
+            plt.grid()
+            plt.show()
+            """
 
             chunk_channel.append(boc_values_message_bit_channel)
 

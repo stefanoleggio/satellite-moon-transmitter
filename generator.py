@@ -1,7 +1,7 @@
 import sys
 import json
 
-# Usage example: python PRNGenerator.py C7_E1B.txt 0
+# Usage example: python generator.py C7_E1B.txt 0
 
 if __name__ == '__main__':
     file = open(sys.argv[1], "r")
@@ -70,5 +70,5 @@ if __name__ == '__main__':
 
     json_object = json.dumps(output)
     
-    with open("PRNCodes.json", "w") as outfile:
+    with open("codes.json", "w") as outfile:
         outfile.write(json_object)
