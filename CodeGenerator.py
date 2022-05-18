@@ -28,29 +28,47 @@ if __name__ == '__main__':
             break
         start_mask += '0'
 
-    prn_sequence_inverse = start_mask + bin((1 << code_lenght) - 1 - int(prn_sequence,2))[2:]
+    prn_sequence_vector = []
+    prn_sequence_inverse_vector = []
 
-    boc_sequence = ''
-    boc_sequence_inverse = ''
-
-    for bit in prn_sequence:
-        if(bit == '1'):
-            boc_sequence += '+1 -1 '
-            boc_sequence_inverse += '-1 +1 '
+    for prn_bit in prn_sequence:
+        prn_sequence_vector.append(int(prn_bit))
+        if(prn_bit == '0'):
+            prn_sequence_inverse_vector.append(1)
         else:
-            boc_sequence += '-1 +1 '
-            boc_sequence_inverse += '+1 -1 '
+            prn_sequence_inverse_vector.append(0)
+
+
+    boc_sequence_vector = []
+    boc_sequence_inverse_vector = []
+
+
+    for prn_bit in prn_sequence_vector:
+        if(prn_bit == 1):
+            boc_sequence_vector.append(1)
+            boc_sequence_vector.append(-1)
+        else:
+            boc_sequence_vector.append(-1)
+            boc_sequence_vector.append(1)
+
+    for prn_bit in prn_sequence_inverse_vector:
+        if(prn_bit == 1):
+            boc_sequence_inverse_vector.append(1)
+            boc_sequence_inverse_vector.append(-1)
+        else:
+            boc_sequence_inverse_vector.append(-1)
+            boc_sequence_inverse_vector.append(1)
 
     output = {
         'prn_id': code_id,
         'prn_lenght': code_lenght,
-        'prn_sequence': prn_sequence,
-        'prn_sequence_inverse': prn_sequence_inverse,
-        'boc_sequence': boc_sequence,
-        'boc_sequence_inverse': boc_sequence_inverse
+        'prn_sequence': prn_sequence_vector,
+        'prn_sequence_inverse': prn_sequence_inverse_vector,
+        'boc_sequence': boc_sequence_vector,
+        'boc_sequence_inverse': boc_sequence_inverse_vector
     }
 
-    json_object = json.dumps(output, indent = 4)
+    json_object = json.dumps(output)
     
     with open("PRNCodes.json", "w") as outfile:
         outfile.write(json_object)

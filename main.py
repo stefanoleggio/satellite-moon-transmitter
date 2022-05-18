@@ -25,7 +25,8 @@ if __name__ == '__main__':
     PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
     BOC_SEQUENCE = codes['boc_sequence']
     BOC_SEQUENCE_INVERSE = codes['boc_sequence_inverse']
-
+    
+    # Channel modelling
     BOLTZMANN_COSTANT = 1.3809649 * pow(10,-23)
     TEMPERATURE = 300
     BAND = 1.023 * pow(10,6)
@@ -71,11 +72,11 @@ if __name__ == '__main__':
                 chunk_PRN.append(PRN_SEQUENCE)
 
         print("Chunk with PRN")
-        print(list(map(lambda x: x[:15] + "...", chunk_PRN)))
+        print(list(map(lambda x: str(x[:5]) + "...", chunk_PRN)))
 
         print("\n")
 
-        ## BOC Modulation
+        # BOC Modulation
 
         chunk_boc = []
         for message_bit in chunk:
@@ -86,41 +87,35 @@ if __name__ == '__main__':
 
 
         print("Chunk with BOC")
-        print(list(map(lambda x: x[:15] + "...", chunk_boc)))
+        print(list(map(lambda x: str(x[:5]) + "...", chunk_boc)))
 
         print("\n")
 
-        ## AWGN
+        # Adding channel effects
 
-        output = []
+        chunk_channel = []
 
-        for message_bit in chunk_boc:
+        for boc_values_message_bit in chunk_boc:
 
+            boc_for_message_bit_size = len(boc_values_message_bit)
 
-            message_bit_splitted = message_bit.split(" ")
-            awgn_vector = (np.random.randn(len(message_bit_splitted)-1) + 1j*np.random.randn(len(message_bit_splitted)-1)) * np.sqrt(N_0*BAND/2)
-            path_loss_vector = np.random.uniform(0,pow(10, -8),len(message_bit_splitted)-1)
+            awgn_vector = (np.random.randn(boc_for_message_bit_size) + 1j*np.random.randn(boc_for_message_bit_size)) * np.sqrt(N_0*BAND/2)
+            path_loss_vector = np.random.uniform(0,pow(10, -8),boc_for_message_bit_size)
+                     
+            boc_values_message_bit_channel = boc_values_message_bit * path_loss_vector + awgn_vector
 
-            #TODO: fix char missing ''
-            message_bit_casted = []
-
-            for x in message_bit_splitted:
-                if(x != ''):
-                    message_bit_casted.append(int(x))
-
-            result = message_bit_casted * path_loss_vector + awgn_vector
-
-            #plt.plot(np.real(result),np.imag(result), '.')
+            #plt.plot(np.real(boc_values_message_bit_channel),np.imag(boc_values_message_bit_channel), '.')
             #plt.show()
 
-            output.append(result)
+            chunk_channel.append(boc_values_message_bit_channel)
 
-        print("Chunk with AWGN and PATH LOSS")
-        print(output)
-        print("\n")
+        print("Chunk with channel effects: AWGN and PATH LOSS")
+        print(chunk_channel)
+        print("\n-------------------------------------------------\n")
 
         if(chunk_count == 0 and len(sys.argv)>1 and sys.argv[1] == "-p"):
 
+            """
             prn_to_plot = chunk_PRN[0][:chunk_len]
             prn_to_plot_list = []
 
@@ -131,6 +126,7 @@ if __name__ == '__main__':
             signalPlot(prn_to_plot_list,1, chunk_len, "Message with PRN")
             #signalPlot(boc_to_plot_list,1, chunk_len, "Message modulated with BOC")
             draw_plot = False
+            """
 
         
         chunk_count += 1
