@@ -4,11 +4,10 @@ import numpy as np
 import sys
 import os
 
-def signalPlot(data, T, total_duration, title):
-    t = np.arange(0, total_duration, T)
-    plt.step(t, data)
-    plt.xticks(t)
+def iqPlot(values,title):
+    plt.plot(np.real(values),np.imag(values), '.')
     plt.title(title)
+    plt.grid()
     plt.show()
 
 
@@ -54,6 +53,8 @@ if __name__ == '__main__':
     bit_count = 0
     chunk_count = 0
     eof = False
+    noiseFlag = True # Flag for enabling awgn noise
+    firstPlot = True
 
     while(not eof):
 
@@ -126,7 +127,24 @@ if __name__ == '__main__':
             doppler_shift_vector = np.random.uniform(2000,5000,boc_for_message_bit_size)
             latency_vector = np.random.uniform(5,10,boc_for_message_bit_size)*pow(10,-6)
 
-            boc_values_message_bit_channel = boc_values_message_bit * path_loss_vector * np.exp(1j*2*np.pi*doppler_shift_vector*latency_vector) + awgn_vector
+            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
+                iqPlot(boc_values_message_bit, "BOC(1,1) output")
+
+            boc_values_message_bit_channel = boc_values_message_bit * path_loss_vector
+
+            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
+                iqPlot(boc_values_message_bit_channel, "IQ samples with path loss")
+
+            boc_values_message_bit_channel = boc_values_message_bit_channel * np.exp(1j*2*np.pi*doppler_shift_vector*latency_vector)
+
+            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
+                iqPlot(boc_values_message_bit_channel, "IQ samples with doppler shift")
+
+            if(noiseFlag):
+                boc_values_message_bit_channel = boc_values_message_bit_channel + awgn_vector
+                if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
+                    iqPlot(boc_values_message_bit_channel, "IQ samples with AWGN")
+
 
             for boc_value_message_bit_channel in boc_values_message_bit_channel:
                 real_sample = quantizer(np.real(boc_value_message_bit_channel))
@@ -134,31 +152,13 @@ if __name__ == '__main__':
                 output_file.write(bin(real_sample)[2:].zfill(16))
                 output_file.write(bin(imag_sample)[2:].zfill(16))
 
-            #plt.plot(np.real(boc_values_message_bit_channel),np.imag(boc_values_message_bit_channel), '.')
-            #plt.grid()
-            #plt.show()
-
             chunk_channel.append(boc_values_message_bit_channel)
+
+            firstPlot = False
 
         print("Chunk with channel effects: AWGN, PATH LOSS and DOPPLER SHIFT")
         print(chunk_channel)
         print("\n-------------------------------------------------\n")
-
-        if(chunk_count == 0 and len(sys.argv)>1 and sys.argv[1] == "-p"):
-
-            """
-            prn_to_plot = chunk_PRN[0][:chunk_len]
-            prn_to_plot_list = []
-
-            for char in prn_to_plot:
-                prn_to_plot_list.append(int(char,2))
-    
-            signalPlot(chunk,1,chunk_len, "Message")
-            signalPlot(prn_to_plot_list,1, chunk_len, "Message with PRN")
-            #signalPlot(boc_to_plot_list,1, chunk_len, "Message modulated with BOC")
-            draw_plot = False
-            """
-
         
         chunk_count += 1
         bit_count = 0
