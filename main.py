@@ -1,14 +1,19 @@
 import json
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import os
+import pickle
 
 def iqPlot(values,title):
-    plt.plot(np.real(values),np.imag(values), '.')
+    plt.plot(np.real(values[:PLOT_POINTS]),np.imag(values[:PLOT_POINTS]), '.')
     plt.title(title)
+    plt.xlabel("Q")
+    plt.ylabel("I")
     plt.grid()
-    plt.show()
+    plt.savefig("plots/"+title+".png")
+    plt.close()
 
 
 def quantizer(value):
@@ -16,10 +21,7 @@ def quantizer(value):
     quantized_value = abs(round(value/V_FS * (pow(2,BIT_FOR_IQ-1)-1)))
     if(abs(value) > V_FS):
         quantized_value = pow(2,BIT_FOR_IQ - 1) - 1
-    
-    if(value<0):
-        quantized_value = ~quantized_value + pow(2,BIT_FOR_IQ-1) + 1
-    return quantized_value
+    return int(math.copysign(1,value)) * quantized_value
 
  # Usage example:   python main.py
  #                  python main.py -p (for plotting)
@@ -33,7 +35,7 @@ if __name__ == '__main__':
 
     message = open("message.bin", "rb")
     codes = json.load(open("codes.json", "r"))
-    output_file = open("output.bin","a")
+    output_file = open("output.bin","ab")
 
     PRN_SEQUENCE = codes['prn_sequence']
     PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
@@ -49,6 +51,8 @@ if __name__ == '__main__':
 
     V_FS = pow(10,-4)
     BIT_FOR_IQ = 16
+
+    PLOT_POINTS = 300
 
     bit_count = 0
     chunk_count = 0
@@ -130,12 +134,7 @@ if __name__ == '__main__':
             if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
                 iqPlot(boc_values_message_bit, "BOC(1,1) output")
 
-            boc_values_message_bit_channel = boc_values_message_bit * path_loss_vector
-
-            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
-                iqPlot(boc_values_message_bit_channel, "IQ samples with path loss")
-
-            boc_values_message_bit_channel = boc_values_message_bit_channel * np.exp(1j*2*np.pi*doppler_shift_vector*latency_vector)
+            boc_values_message_bit_channel = boc_values_message_bit * np.exp(1j*2*np.pi*doppler_shift_vector*latency_vector)
 
             if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
                 iqPlot(boc_values_message_bit_channel, "IQ samples with doppler shift")
@@ -145,12 +144,17 @@ if __name__ == '__main__':
                 if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
                     iqPlot(boc_values_message_bit_channel, "IQ samples with AWGN")
 
+            boc_values_message_bit_channel = boc_values_message_bit_channel * path_loss_vector
+
+            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
+                iqPlot(boc_values_message_bit_channel, "IQ samples with path loss")
+
 
             for boc_value_message_bit_channel in boc_values_message_bit_channel:
                 real_sample = quantizer(np.real(boc_value_message_bit_channel))
                 imag_sample = quantizer(np.imag(boc_value_message_bit_channel))
-                output_file.write(bin(real_sample)[2:].zfill(16))
-                output_file.write(bin(imag_sample)[2:].zfill(16))
+                output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
+                output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
 
             chunk_channel.append(boc_values_message_bit_channel)
 
