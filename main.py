@@ -1,3 +1,4 @@
+from cmath import phase
 import json
 import math
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ def quantizer(value):
 
 if __name__ == '__main__':
 
-    chunk_len = 10 # Bits for chunk - TODO: symbol rate as a variable multiple of the PRN duration
+    chunk_len = 90 # Bits for chunk - TODO: symbol rate as a variable multiple of the PRN duration
 
     if(os.path.exists("output.bin")):
         os.remove("output.bin")
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     TEMPERATURE = 300
     BAND = 1.023 * pow(10,6)
     N_0 = BOLTZMANN_COSTANT*TEMPERATURE
-    F_S = 4*pow(10,6) # Sampling frequency
+    F_S = 4.092*pow(10,6) # Sampling frequency
 
 
     V_FS = pow(10,-4)
@@ -70,120 +71,117 @@ if __name__ == '__main__':
     noiseFlag = True # Flag for enabling awgn noise
     firstPlot = True
 
+    #-----------------------
+
+        # Simulation of doppler shift
+
+    doppler_shift_vector = np.random.uniform(2000,5000,90) #TODO: segni negativi?
+
+    iq_duration_doppler = 1/(BAND+doppler_shift_vector)
+
+    phases_shifts_vector = []
+
+    original_bit_duartion = 4092*2*iq_duration_doppler
+
+    time_list = []
+
+
+    # Phase shift calculation
+    for i in range(len(original_bit_duartion)):
+        time_list.append(np.arange(0, original_bit_duartion[i], 1/F_S))
+        if(i>0):
+            phases_shifts_vector.append(2*math.pi*doppler_shift_vector[i-1]*original_bit_duartion[i-1] + phases_shifts_vector[i-1])
+        else:
+            phases_shifts_vector.append(0)
+
+    # Wave generation
+    wave_list = []
+    for i in range(len(time_list)):
+        wave_list.append(np.cos(2*math.pi*doppler_shift_vector[i]*time_list[i] + phases_shifts_vector[i])) #TODO: change cos
+
+    #-----------------------
+
+    #Path loss
+    path_loss_vector = np.random.uniform(pow(10, -8),pow(10,-5),len(phases_shifts_vector))
+
+   
+    bit_counter = 0
+
+    output_signal = []
+
     while(not eof):
 
-        chunk = []
+        print("Reading bit number " + str(bit_counter))
+        
+        message_bit = message.read(1)
 
-        while(bit_count < chunk_len):
+        boc_sequence = []
 
-            message_bit = message.read(1)
-
-            bit_count += 1
-
-            # Splitting the message in chunks
-            try:
-                chunk.append(int(message_bit,2))
-            except:
-                eof=True
-                break
-
-
-        if(len(chunk) < 1):
+        try:
+            int(message_bit,2)
+        except:
+            eof = True
             break
-        
-        print("Message chunk " + str(chunk_count))
-        print(list(map(lambda x: bin(x)[2:], chunk)))
 
-        print("\n")
+        if(int(message_bit,2)):
+            boc_sequence = BOC_SEQUENCE_INVERSE
+        else:
+            boc_sequence = BOC_SEQUENCE
 
-        # Adding PRN
+        repetitions = len(wave_list[bit_counter])/(2*4092)
 
-        chunk_PRN = []
-        for message_bit in chunk:
-            if(message_bit):
-                chunk_PRN.append(PRN_SEQUENCE_INVERSE)
+        repetitions_integer = math.modf(repetitions)[1]
+        repetitions_decimal = math.modf(repetitions)[0]
+
+        resto = repetitions_decimal
+
+        boc_output = []
+        for i in range(len(boc_sequence)):
+            if(resto<1):
+                j = 0
+                while(j<repetitions_integer):
+                    boc_output.append(boc_sequence[i])
+                    j+=1
+                resto = resto
             else:
-                chunk_PRN.append(PRN_SEQUENCE)
-
-        print("Chunk with PRN")
-        print(list(map(lambda x: str(x[:5]) + "...", chunk_PRN)))
-
-        print("\n")
-
-        # BOC Modulation
-
-        chunk_boc = []
-        for message_bit in chunk:
-            if(message_bit):
-                chunk_boc.append(BOC_SEQUENCE_INVERSE)
-            else:
-                chunk_boc.append(BOC_SEQUENCE)
+                j = 0
+                while(j<repetitions_integer+1):
+                    boc_output.append(boc_sequence[i])
+                    j+=1
+                resto = math.modf(resto)[0]
+            resto += repetitions_decimal
 
 
-        print("Chunk with BOC")
-        print(list(map(lambda x: str(x[:5]) + "...", chunk_boc)))
+        if(len(wave_list[bit_counter]) != len(boc_output)):
+            boc_output.append(boc_sequence[len(boc_sequence)-1])
 
-        print("\n")
+        signal = boc_output * wave_list[bit_counter]
 
-        # Adding channel effects
+        awgn_vector = (np.random.randn(len(boc_output)) + 1j*np.random.randn(len(boc_output))) * np.sqrt(N_0*BAND/2)
 
-        chunk_channel = []
+        signal = signal*path_loss_vector[bit_counter]
 
-        for boc_values_message_bit in chunk_boc:
+        if(noiseFlag):
+            signal = signal + awgn_vector
 
-            boc_for_message_bit_size = len(boc_values_message_bit)
+        output_signal.append(signal)
+
+        bit_counter += 1
+        """
+        for boc_value_message_bit_channel in signal:
+            real_sample = int(quantize_uniform(np.array([np.real(boc_value_message_bit_channel)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
+            imag_sample = int(quantize_uniform(np.imag([np.real(boc_value_message_bit_channel)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
+            output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
+            output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
+            output_file.flush()
+        """
+
+    #plt.scatter(np.arange(0,len(output_signal[1])), np.real(output_signal[1]))
+
+    #plt.scatter(np.arange( len(output_signal[1]),len(output_signal[1]) + len(output_signal[2])) , np.real(output_signal[2]))
+
+    #plt.show()
 
 
-            # Parameters for simulation
 
-            awgn_vector = (np.random.randn(boc_for_message_bit_size) + 1j*np.random.randn(boc_for_message_bit_size)) * np.sqrt(N_0*BAND/2)
-            path_loss_vector = np.random.uniform(pow(10, -8),pow(10,-5),boc_for_message_bit_size)
-            doppler_shift_vector = np.random.uniform(2000,5000,boc_for_message_bit_size)
-            latency_vector = np.random.uniform(5,10,boc_for_message_bit_size)*pow(10,-6)
 
-            # Plot the BOC(1,1)
-            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
-                iqPlot(boc_values_message_bit, "BOC(1,1) output")
-
-            # Doppler shift
-            boc_values_message_bit_channel = boc_values_message_bit * np.exp(1j*2*np.pi*doppler_shift_vector*latency_vector)
-
-            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
-                iqPlot(boc_values_message_bit_channel, "IQ samples with doppler shift")
-
-            if(noiseFlag):
-                # AWGN
-                boc_values_message_bit_channel = boc_values_message_bit_channel + awgn_vector
-                if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
-                    iqPlot(boc_values_message_bit_channel, "IQ samples with AWGN")
-
-            # Path loss
-            boc_values_message_bit_channel = boc_values_message_bit_channel * path_loss_vector
-
-            for i in range(len(boc_values_message_bit_channel)):
-                boc_values_message_bit_channel[i] = F_S * 1/(2*BAND+doppler_shift_vector[i])
-
-            if(firstPlot and len(sys.argv)>1 and sys.argv[1] == "-p"):
-                iqPlot(boc_values_message_bit_channel, "IQ samples with path loss")
-
-            for boc_value_message_bit_channel in boc_values_message_bit_channel:
-
-                real_sample = int(quantize_uniform(np.array([np.real(boc_value_message_bit_channel)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
-                imag_sample = int(quantize_uniform(np.imag([np.real(boc_value_message_bit_channel)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
-                output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
-                output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
-                output_file.flush()
-
-            chunk_channel.append(boc_values_message_bit_channel)
-
-            firstPlot = False
-
-        print("Chunk with channel effects: AWGN (if flag True), PATH LOSS and DOPPLER SHIFT")
-        print(str(chunk_channel[0]) + "...")
-        print("\n-------------------------------------------------\n")
-        
-        chunk_count += 1
-        bit_count = 0
-
-    message.close()
-    output_file.close()
