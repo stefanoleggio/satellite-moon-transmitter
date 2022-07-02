@@ -4,24 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def iqPlot(values,title):
-    plt.plot(np.real(values[:PLOT_POINTS]),np.imag(values[:PLOT_POINTS]), '.')
-    plt.title(title)
-    plt.xlabel("Q")
-    plt.ylabel("I")
-    plt.grid()
-    plt.savefig("plots/"+title+".png")
-    plt.close()
-
-def waveContinuityPlot(output_signal):
-    i = 1
-    j = 2
-            
-    plt.scatter(np.arange(0,len(output_signal[i])), np.real(output_signal[i]))
-    plt.scatter(np.arange( len(output_signal[i]),len(output_signal[i]) + len(output_signal[j])) , np.real(output_signal[j]))
-    plt.axis([len(output_signal[i])-len(output_signal[i])/10, len(output_signal[j])+len(output_signal[i])/10, min(np.concatenate((output_signal[i], output_signal[2]))), max(np.concatenate((output_signal[i], output_signal[j])))])
-    plt.show()
-
 def quantize_uniform(x, quant_min=-1.0, quant_max=1.0, quant_level=5):
 
     x_normalize = (x-quant_min) * (quant_level-1) / (quant_max-quant_min)
@@ -31,35 +13,59 @@ def quantize_uniform(x, quant_min=-1.0, quant_max=1.0, quant_level=5):
 
     return x_normalize_quant
 
-def simulate_doppler_shift():
+def simulate_doppler_shift(ds_duration, input_bits, freq_min, freq_max):
 
-    doppler_shift_vector = np.random.uniform(2000,5000,90) #TODO: segni negativi?
+    total_points = ds_duration * F_S
 
-    iq_duration_doppler = 1/(BAND+doppler_shift_vector)
+    doppler_shift_vector = []
+
+    max_length = input_bits * 4092 * 2 /(2*BAND-freq_max) * F_S
+
+    doppler_shift_vector = np.random.uniform(freq_min,freq_max,math.ceil(max_length/total_points))
+
 
     phases_shifts_vector = []
 
-    original_bit_duartion = 4092*2*iq_duration_doppler
-
-    time_list = []
+    time_list = np.arange(0, ds_duration, 1/F_S)
 
     # Phase shift calculation
-    for i in range(len(original_bit_duartion)):
-        time_list.append(np.arange(0, original_bit_duartion[i], 1/F_S))
+    for i in range(len(doppler_shift_vector)):
         if(i>0):
-            phases_shifts_vector.append(2*math.pi*doppler_shift_vector[i-1]*original_bit_duartion[i-1] + phases_shifts_vector[i-1])
+            phases_shifts_vector.append(2*math.pi*doppler_shift_vector[i-1]*ds_duration + phases_shifts_vector[i-1])
         else:
             phases_shifts_vector.append(0)
 
 
     # Wave generation
     wave_list = []
-    for i in range(len(time_list)):
-        wave_list.append(np.cos(2*math.pi*doppler_shift_vector[i]*time_list[i] + phases_shifts_vector[i])) #TODO: change cos
+    for i in range(len(doppler_shift_vector)):
+        wave_list = np.concatenate((wave_list,np.cos(2*math.pi*doppler_shift_vector[i]*time_list + phases_shifts_vector[i]) + 1j * np.sin(2*math.pi*doppler_shift_vector[i]*time_list + phases_shifts_vector[i])))
+    
 
-    return wave_list
+    return wave_list, doppler_shift_vector
 
 
+def simulate_path_loss(pl_duration, input_bits, val_min, val_max, freq_max):
+
+    total_points = pl_duration * F_S
+
+
+    path_loss_vector = []
+
+    j = 0
+
+    max_length = input_bits * 4092 * 2 /(2*BAND-freq_max) * F_S
+
+    while(j<max_length):
+        x = np.random.uniform(val_min,val_max,1)[0]
+        i = 0
+        while(i<total_points):
+            path_loss_vector.append(x)
+            i += 1
+
+        j += i
+
+    return path_loss_vector
 
 if __name__ == '__main__':
 
@@ -87,26 +93,69 @@ if __name__ == '__main__':
 
     # Channel Parameters
 
-    pathLossFlag = True
-    awgnFlag = True 
-    writeOutput = False
+    ds_duration_default = 0.2
+    pl_duration_default = 0.1995
+    ds_freq_max_default = 5000
+    ds_freq_min_default = 2000
+    pl_val_min_default = -6
+    pl_val_max_default = -5
 
-    # Doppler shift simulation
+    print("\n### Satellite transmitter simulator ###\n")
 
-    ds_wave_list = simulate_doppler_shift()
+    ds_duration = float(input("Set Doppler shift duration (" + str(ds_duration_default) + "): ") or ds_duration_default)
+
+    pl_duration = float(input("Set Path Loss duration: (" + str(pl_duration_default) + "): ") or pl_duration_default)
+
+    ds_freq_max = int(input("Set Doppler shift max freq: (" + str(ds_freq_max_default) + "): ") or ds_freq_max_default)
+
+    ds_freq_min = int(input("Set Doppler shift min freq: (" + str(ds_freq_min_default) + "): ") or ds_freq_min_default)
+
+    pl_val_min = int(input("Set Path Loss min value: (" + str(pl_val_min_default) + "): ") or pl_val_min_default)
+
+    pl_val_max = int(input("Set Path Loss max value: (" + str(pl_val_max_default) + "): ") or pl_val_max_default)
+
+    pathLossFlag = input("Insert Path Loss? (Y/N)")
+
+    if(pathLossFlag.lower() == "y"):
+        pathLossFlag = True
+    elif(pathLossFlag.lower() == "n"):
+        pathLossFlag = False
+    else:
+        pathLossFlag = True
+
+    awgnFlag = input("Insert AWGN? (Y/N)")
+
+    if(awgnFlag.lower() == "y"):
+        awgnFlag = True
+    elif(awgnFlag.lower() == "n"):
+        awgnFlag = False
+    else:
+        awgnFlag = True
+
+    writeOutput = input("Write IQ samples output? (Y/N)")
+
+    if(writeOutput.lower() == "y"):
+        writeOutput = True
+    elif(writeOutput.lower() == "n"):
+        writeOutput = False
+    else:
+        writeOutput = False
 
 
-    # Path loss simulation
+    ds_wave_list, doppler_shift_vector = simulate_doppler_shift(ds_duration, 180, ds_freq_min, ds_freq_max)
 
-    path_loss_vector = np.random.uniform(pow(10, -8),pow(10,-5),len(ds_wave_list))
+    path_loss_vector = simulate_path_loss(pl_duration, 180, pow(10, pl_val_min), pow(10,pl_val_max), ds_freq_max)
 
     bit_counter = 0
 
     output_signal = [] # Output list of all signal waves
 
-    while(True):
+    boc_output = []
 
-        print("Reading bit number " + str(bit_counter))
+    current_time = 0
+    remainder = 0
+
+    while(True):
         
         message_bit = message.read(1)
 
@@ -126,65 +175,66 @@ if __name__ == '__main__':
 
         # Doppler shift implementation
 
-        repetitions = len(ds_wave_list[bit_counter])/(2*4092)
+        repetitions = []
 
-        repetitions_integer = math.modf(repetitions)[1]
-        repetitions_decimal = math.modf(repetitions)[0]
-
-        remainder = repetitions_decimal
-
-        boc_output = []
         for i in range(len(boc_sequence)):
-            if(remainder<1):
-                j = 0
-                while(j<repetitions_integer):
-                    boc_output.append(boc_sequence[i])
-                    j+=1
-                remainder = remainder
-            else:
-                j = 0
-                while(j<repetitions_integer+1):
-                    boc_output.append(boc_sequence[i])
-                    j+=1
-                remainder = math.modf(remainder)[0]
-            remainder += repetitions_decimal
+            index = math.floor(current_time/ds_duration)
+            current_time += 1/(2*BAND+doppler_shift_vector[index])
+            repetitions.append(1/(2*BAND+doppler_shift_vector[index])*F_S)
 
+        
 
-        if(len(ds_wave_list[bit_counter]) != len(boc_output)):
-            boc_output.append(boc_sequence[len(boc_sequence)-1])
+        for i in range(len(boc_sequence)):
+            remainder += repetitions[i]
 
-        signal = boc_output * ds_wave_list[bit_counter]
+            j = 0
+            while(j<math.modf(remainder)[1]):
+                boc_output.append(boc_sequence[i])
+                j+=1
+            remainder = math.modf(remainder)[0]
 
-        # AWGN simulation
-
-        awgn_vector = (np.random.randn(len(boc_output)) + 1j*np.random.randn(len(boc_output))) * np.sqrt(N_0*BAND/2)
-
-        if(pathLossFlag):
-            
-            # Apply Path Loss
-
-            signal = signal*path_loss_vector[bit_counter]
-
-        if(awgnFlag):
-
-            # Apply AWGN
-
-            signal = signal + awgn_vector
-
-        output_signal.append(signal)
-
-        if(writeOutput):
-
-            # IQ samples writing
-
-            for signal_bit in signal:
-                real_sample = int(quantize_uniform(np.array([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
-                imag_sample = int(quantize_uniform(np.imag([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
-                output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
-                output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
-                output_file.flush()
 
         bit_counter += 1
-            
 
-    waveContinuityPlot(output_signal)
+
+    signal = boc_output * ds_wave_list[:len(boc_output)]
+
+
+    plt.scatter(np.arange(0,len(signal[815000:820000])), np.real(signal[815000:820000]))
+    plt.title("Signal with Doppler Shift")
+    plt.show()
+
+    # AWGN simulation
+
+    awgn_vector = (np.random.randn(len(signal)) + 1j*np.random.randn(len(signal))) * np.sqrt(N_0*BAND/2)
+
+    
+
+    if(pathLossFlag):
+
+        # Apply Path Loss
+
+        signal = signal * path_loss_vector[:len(signal)]
+    
+    if(awgnFlag):
+
+        # Apply AWGN
+
+        signal = signal + awgn_vector
+
+    plt.scatter(np.arange(0,len(signal[814000:820000])), np.real(signal[814000:820000]))
+    plt.title("Signal with Path Loss and AWGN")
+    plt.show()
+
+    if(writeOutput):
+
+        print("\nWriting output...")
+
+        # IQ samples writing
+
+        for signal_bit in signal:
+            real_sample = int(quantize_uniform(np.array([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
+            imag_sample = int(quantize_uniform(np.imag([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
+            output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
+            output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
+            output_file.flush()
