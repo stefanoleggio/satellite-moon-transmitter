@@ -45,6 +45,17 @@ def simulate_doppler_shift(ds_duration, input_bits, freq_min, freq_max):
     return wave_list, doppler_shift_vector
 
 
+def square_wave_plot(data, T, total_duration, title):
+    t = np.arange(0, total_duration, T)
+    plt.step(t, data)
+    plt.xlabel("n (sample)")
+    plt.ylabel("value")
+    plt.xticks(t)
+    plt.title(title)
+    plt.savefig("plots/"+title+".png")
+    plt.close()
+
+
 def simulate_path_loss(pl_duration, input_bits, val_min, val_max, freq_max):
 
     total_points = pl_duration * F_S
@@ -80,6 +91,8 @@ if __name__ == '__main__':
 
     BOC_SEQUENCE = codes['boc_sequence']
     BOC_SEQUENCE_INVERSE = codes['boc_sequence_inverse']
+    PRN_SEQUENCE = codes['prn_sequence']
+    PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
     
     # Chanel costants
 
@@ -148,16 +161,25 @@ if __name__ == '__main__':
 
     bit_counter = 0
 
-    output_signal = [] # Output list of all signal waves
-
     boc_output = []
 
     current_time = 0
     remainder = 0
 
+    message_bits_to_plot = [] # Buffer for plotting
+    messagePlotFlag = True
+    bocPlotFlag = True
+    prnPlotFlag = True
+
     while(True):
         
         message_bit = message.read(1)
+
+        message_bits_to_plot.append(message_bit)
+
+        if(len(message_bits_to_plot)>10 and messagePlotFlag):
+            square_wave_plot(message_bits_to_plot, 1, len(message_bits_to_plot), "Message")
+            messagePlotFlag = False
 
         boc_sequence = []
 
@@ -166,12 +188,27 @@ if __name__ == '__main__':
         except:
             break
 
-        # PRN and BOC modulation
+        # Just for plotting: PRN adding
+        PRN_sequence = []
+        if(int(message_bit,2)):
+            PRN_sequence = PRN_SEQUENCE_INVERSE
+        else:
+            PRN_sequence = PRN_SEQUENCE
+
+        if(prnPlotFlag):
+            square_wave_plot(PRN_sequence[:10],1,10,"Message with PRN")
+            prnPlotFlag = False
+
+        # PRN and BOC modulation, the BOC(1,1) sequence already contains the PRN
 
         if(int(message_bit,2)):
             boc_sequence = BOC_SEQUENCE_INVERSE
         else:
             boc_sequence = BOC_SEQUENCE
+
+        if(bocPlotFlag):
+            square_wave_plot(boc_sequence[:10],1,10,"Message modulated with Boc(1,1)")
+            bocPlotFlag = False
 
         # Doppler shift implementation
 
@@ -208,7 +245,6 @@ if __name__ == '__main__':
 
     awgn_vector = (np.random.randn(len(signal)) + 1j*np.random.randn(len(signal))) * np.sqrt(N_0*BAND/2)
 
-    
 
     if(pathLossFlag):
 
