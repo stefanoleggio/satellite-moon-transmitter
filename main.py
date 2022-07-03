@@ -23,7 +23,6 @@ def simulate_doppler_shift(ds_duration, input_bits, freq_min, freq_max):
 
     doppler_shift_vector = np.random.uniform(freq_min,freq_max,math.ceil(max_length/total_points))
 
-
     phases_shifts_vector = []
 
     time_list = np.arange(0, ds_duration, 1/F_S)
@@ -52,6 +51,15 @@ def square_wave_plot(data, T, total_duration, title):
     plt.ylabel("value")
     plt.xticks(t)
     plt.title(title)
+    plt.savefig("plots/"+title+".png")
+    plt.close()
+
+def iqPlot(values, title, plot_points):
+    plt.plot(np.real(values[:plot_points]),np.imag(values[:plot_points]), '.')
+    plt.title(title)
+    plt.xlabel("Q")
+    plt.ylabel("I")
+    plt.grid()
     plt.savefig("plots/"+title+".png")
     plt.close()
 
@@ -236,6 +244,8 @@ if __name__ == '__main__':
 
     signal = boc_output * ds_wave_list[:len(boc_output)]
 
+    iqPlot(signal, "IQ samples with doppler shift", len(signal)-1)
+
 
     plt.scatter(np.arange(0,len(signal[815000:820000])), np.real(signal[815000:820000]))
     plt.title("Signal with Doppler Shift")
@@ -251,12 +261,16 @@ if __name__ == '__main__':
         # Apply Path Loss
 
         signal = signal * path_loss_vector[:len(signal)]
+
+        iqPlot(signal, "IQ samples with Path Loss", len(signal)-1)
     
     if(awgnFlag):
 
         # Apply AWGN
 
         signal = signal + awgn_vector
+
+        iqPlot(signal, "IQ samples with AWGN", len(signal)-1)
 
     plt.scatter(np.arange(0,len(signal[814000:820000])), np.real(signal[814000:820000]))
     plt.title("Signal with Path Loss and AWGN")
@@ -268,9 +282,12 @@ if __name__ == '__main__':
 
         # IQ samples writing
 
+        counter = 0
+
         for signal_bit in signal:
             real_sample = int(quantize_uniform(np.array([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
-            imag_sample = int(quantize_uniform(np.imag([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
+            imag_sample = int(quantize_uniform(np.array([np.imag(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
             output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
             output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
             output_file.flush()
+            counter += 1
