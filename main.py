@@ -242,6 +242,8 @@ if __name__ == '__main__':
         bit_counter += 1
 
 
+    iqPlot(boc_output, "IQ samples of the BOC(1,1)", len(boc_output)-1)
+
     signal = boc_output * ds_wave_list[:len(boc_output)]
 
     iqPlot(signal, "IQ samples with doppler shift", len(signal)-1)
