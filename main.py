@@ -4,6 +4,54 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+#
+# Plotting functions
+#
+
+def square_wave_plot(data, T, total_duration, title):
+    t = np.arange(0, total_duration, T)
+    plt.step(t, data)
+    plt.xlabel("n (sample)")
+    plt.ylabel("value")
+    plt.xticks(t)
+    plt.title(title)
+    plt.savefig("plots/"+title+".png")
+    plt.close()
+
+def iqPlot(values, title, plot_points):
+    plt.plot(np.real(values[:plot_points]),np.imag(values[:plot_points]), '.')
+    plt.title(title)
+    plt.xlabel("Q")
+    plt.ylabel("I")
+    plt.grid()
+    plt.savefig("plots/"+title+".png")
+    plt.close()
+
+def plot_prn_and_boc():
+    fig, axis = plt.subplots(nrows=2, sharex=True, subplot_kw=dict(frameon=False)) # frameon=False removes frames
+    t = np.arange(0, 10, 1)
+    axis[0].scatter(t, PRN_SEQUENCE[:10])
+    axis[0].set_ylabel("value")
+    axis[1].set_xlabel("chip time")
+    axis[0].set_xticks(t)
+    axis[0].set_title("PRN sequence")
+
+    t = np.arange(0, 10, 0.5)
+    axis[1].scatter(t, BOC_SEQUENCE[:20])
+    axis[1].set_ylabel("value")
+    axis[1].set_xlabel("chip time")
+    axis[1].set_xticks(t)
+    axis[1].set_title("BOC modulated signal")
+
+    axis[0].grid()
+    axis[1].grid()
+    fig.savefig("plots/PRN_with_BOC.png")
+    plt.close()
+
+#
+# Quantizer function
+#
+
 def quantize_uniform(x, quant_min=-1.0, quant_max=1.0, quant_level=5):
 
     x_normalize = (x-quant_min) * (quant_level-1) / (quant_max-quant_min)
@@ -12,6 +60,10 @@ def quantize_uniform(x, quant_min=-1.0, quant_max=1.0, quant_level=5):
     x_normalize_quant = np.around(x_normalize)-pow(2,BIT_FOR_IQ-1)
 
     return x_normalize_quant
+
+#
+# Function for simulation of doppler shift
+#
 
 def simulate_doppler_shift(ds_duration, input_bits, freq_min, freq_max):
 
@@ -43,26 +95,9 @@ def simulate_doppler_shift(ds_duration, input_bits, freq_min, freq_max):
 
     return wave_list, doppler_shift_vector
 
-
-def square_wave_plot(data, T, total_duration, title):
-    t = np.arange(0, total_duration, T)
-    plt.step(t, data)
-    plt.xlabel("n (sample)")
-    plt.ylabel("value")
-    plt.xticks(t)
-    plt.title(title)
-    plt.savefig("plots/"+title+".png")
-    plt.close()
-
-def iqPlot(values, title, plot_points):
-    plt.plot(np.real(values[:plot_points]),np.imag(values[:plot_points]), '.')
-    plt.title(title)
-    plt.xlabel("Q")
-    plt.ylabel("I")
-    plt.grid()
-    plt.savefig("plots/"+title+".png")
-    plt.close()
-
+#
+# Function for simulation of path loss
+#
 
 def simulate_path_loss(pl_duration, input_bits, val_min, val_max, freq_max):
 
@@ -103,7 +138,9 @@ if __name__ == '__main__':
     PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
     PRN_LENGHT = codes['prn_lenght']
     PRN_WITH_BOC_LENGHT = PRN_LENGHT * 2
-    
+
+    plot_prn_and_boc()
+
     # Chanel costants
 
     BOLTZMANN_COSTANT = 1.3809649 * pow(10,-23)
@@ -117,11 +154,12 @@ if __name__ == '__main__':
     pl_duration_default = 0.1995
     ds_freq_max_default = 5000
     ds_freq_min_default = 2000
-    pl_val_min_default = -6
-    pl_val_max_default = -5
-    temperature_default = 300
+    pl_val_min_default = -25
+    pl_val_max_default = -20
+    snr_default = 20
 
     print("\n### Satellite transmitter simulator ###\n")
+    print("legend: [unit of measure] (default value)\n")
 
     ds_duration = float(input("Set update period of doppler shift [s] (" + str(ds_duration_default) + "): ") or ds_duration_default) # Set update period of doppler shift (s) 
 
@@ -135,13 +173,13 @@ if __name__ == '__main__':
 
     pl_val_max = float(input("Set Path Loss gain max value [dB] (" + str(pl_val_max_default) + "): ") or pl_val_max_default)
 
-    temperature =  float(input("Set noise temperature value [K] (" + str(temperature_default) + "): ") or temperature_default)
+    snr =  float(input("Set SNR value [dB] (" + str(snr_default) + "): ") or snr_default)
 
-    N_0 = BOLTZMANN_COSTANT*temperature
+    N_0 = (pow(10,np.mean([pl_val_min,pl_val_max])/10))/pow(10,snr/10)
 
-    V_FS = pl_val_max
+    V_SAT = np.sqrt(pow(10,pl_val_max/10)) # Computing the saturation value of the quantizer
 
-    pathLossFlag = input("Insert Path Loss? (Y)")
+    pathLossFlag = input("Insert Path Loss? [Y/N] (Y)")
 
     if(pathLossFlag.lower() == "y"):
         pathLossFlag = True
@@ -150,7 +188,7 @@ if __name__ == '__main__':
     else:
         pathLossFlag = True
 
-    awgnFlag = input("Insert AWGN? (Y)")
+    awgnFlag = input("Insert AWGN? [Y/N] (Y)")
 
     if(awgnFlag.lower() == "y"):
         awgnFlag = True
@@ -159,7 +197,7 @@ if __name__ == '__main__':
     else:
         awgnFlag = True
 
-    writeOutput = input("Write IQ samples output? (N)")
+    writeOutput = input("Write IQ samples output? [Y/N] (N)")
 
     if(writeOutput.lower() == "y"):
         writeOutput = True
@@ -168,24 +206,28 @@ if __name__ == '__main__':
     else:
         writeOutput = False
 
-    #TODO computing input size
+
+    ## Counting previously the message bits for creating the simulation vectors
+
+    message_tmp = open("message.bin", "rb")
+    input_size = 0
+    for line in message_tmp.readlines():
+        input_size += len(line)
+    
+    ####
 
 
 
+    ds_wave_list, doppler_shift_vector = simulate_doppler_shift(ds_duration, input_size, ds_freq_min, ds_freq_max)
 
-    ds_wave_list, doppler_shift_vector = simulate_doppler_shift(ds_duration, 180, ds_freq_min, ds_freq_max)
-
-    path_loss_vector = simulate_path_loss(pl_duration, 180, pow(10, pl_val_min), pow(10,pl_val_max), ds_freq_max)
+    path_loss_vector = simulate_path_loss(pl_duration, input_size, pow(10, pl_val_min/10), pow(10,pl_val_max/10), ds_freq_max)
 
 
 
     bit_counter = 0
-
     boc_output = []
-
     current_time = 0
     remainder = 0
-
     message_bits_to_plot = [] # Buffer for plotting
     messagePlotFlag = True
     bocPlotFlag = True
@@ -296,8 +338,8 @@ if __name__ == '__main__':
         # IQ samples writing
 
         for signal_bit in signal:
-            real_sample = int(quantize_uniform(np.array([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
-            imag_sample = int(quantize_uniform(np.array([np.imag(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
+            real_sample = int(quantize_uniform(np.array([np.real(signal_bit)]), -V_SAT, V_SAT,pow(2,BIT_FOR_IQ))[0])
+            imag_sample = int(quantize_uniform(np.array([np.imag(signal_bit)]), -V_SAT, V_SAT,pow(2,BIT_FOR_IQ))[0])
             output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
             output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
             output_file.flush()

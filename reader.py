@@ -15,6 +15,7 @@ while True:
     imag_sample = output_file.read(2)
     imag_sample_cast = int.from_bytes(imag_sample, byteorder='big',signed=True)
 
+
     real_sample_binary = bin(abs(real_sample_cast))[2:].zfill(16)
     imag_sample_binary = bin(abs(imag_sample_cast))[2:].zfill(16)
 
