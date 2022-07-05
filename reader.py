@@ -5,6 +5,8 @@ output_file = open("output.bin","rb")
 
 counter = 0
 
+print("Print of the first 32 IQ samples of the file output.bin")
+
 while True:
     if(counter>32):
         break

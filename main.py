@@ -19,7 +19,7 @@ def simulate_doppler_shift(ds_duration, input_bits, freq_min, freq_max):
 
     doppler_shift_vector = []
 
-    max_length = input_bits * 4092 * 2 /(2*BAND-freq_max) * F_S
+    max_length = input_bits * PRN_WITH_BOC_LENGHT /(2*CHIP_RATE-freq_max) * F_S
 
     doppler_shift_vector = np.random.uniform(freq_min,freq_max,math.ceil(max_length/total_points))
 
@@ -73,7 +73,7 @@ def simulate_path_loss(pl_duration, input_bits, val_min, val_max, freq_max):
 
     j = 0
 
-    max_length = input_bits * 4092 * 2 /(2*BAND-freq_max) * F_S
+    max_length = input_bits * PRN_WITH_BOC_LENGHT /(2*CHIP_RATE-freq_max) * F_S
 
     while(j<max_length):
         x = np.random.uniform(val_min,val_max,1)[0]
@@ -101,15 +101,14 @@ if __name__ == '__main__':
     BOC_SEQUENCE_INVERSE = codes['boc_sequence_inverse']
     PRN_SEQUENCE = codes['prn_sequence']
     PRN_SEQUENCE_INVERSE = codes['prn_sequence_inverse']
+    PRN_LENGHT = codes['prn_lenght']
+    PRN_WITH_BOC_LENGHT = PRN_LENGHT * 2
     
     # Chanel costants
 
     BOLTZMANN_COSTANT = 1.3809649 * pow(10,-23)
-    TEMPERATURE = 300
-    BAND = 1.023 * pow(10,6)
-    N_0 = BOLTZMANN_COSTANT*TEMPERATURE
+    CHIP_RATE = 1.023 * pow(10,6)
     F_S = 4.092*pow(10,6) # Sampling frequency
-    V_FS = pow(10,-4)
     BIT_FOR_IQ = 16
 
     # Channel Parameters
@@ -120,22 +119,29 @@ if __name__ == '__main__':
     ds_freq_min_default = 2000
     pl_val_min_default = -6
     pl_val_max_default = -5
+    temperature_default = 300
 
     print("\n### Satellite transmitter simulator ###\n")
 
-    ds_duration = float(input("Set Doppler shift duration (" + str(ds_duration_default) + "): ") or ds_duration_default)
+    ds_duration = float(input("Set update period of doppler shift [s] (" + str(ds_duration_default) + "): ") or ds_duration_default) # Set update period of doppler shift (s) 
 
-    pl_duration = float(input("Set Path Loss duration: (" + str(pl_duration_default) + "): ") or pl_duration_default)
+    pl_duration = float(input("Set update period of doppler shift [s] (" + str(pl_duration_default) + "): ") or pl_duration_default)
 
-    ds_freq_max = int(input("Set Doppler shift max freq: (" + str(ds_freq_max_default) + "): ") or ds_freq_max_default)
+    ds_freq_max = int(input("Set Doppler shift max freq [Hz] (" + str(ds_freq_max_default) + "): ") or ds_freq_max_default)
 
-    ds_freq_min = int(input("Set Doppler shift min freq: (" + str(ds_freq_min_default) + "): ") or ds_freq_min_default)
+    ds_freq_min = int(input("Set Doppler shift min freq [Hz] (" + str(ds_freq_min_default) + "): ") or ds_freq_min_default)
 
-    pl_val_min = int(input("Set Path Loss min value: (" + str(pl_val_min_default) + "): ") or pl_val_min_default)
+    pl_val_min = float(input("Set Path Loss gain min value [dB] (" + str(pl_val_min_default) + "): ") or pl_val_min_default)
 
-    pl_val_max = int(input("Set Path Loss max value: (" + str(pl_val_max_default) + "): ") or pl_val_max_default)
+    pl_val_max = float(input("Set Path Loss gain max value [dB] (" + str(pl_val_max_default) + "): ") or pl_val_max_default)
 
-    pathLossFlag = input("Insert Path Loss? (Y/N)")
+    temperature =  float(input("Set noise temperature value [K] (" + str(temperature_default) + "): ") or temperature_default)
+
+    N_0 = BOLTZMANN_COSTANT*temperature
+
+    V_FS = pl_val_max
+
+    pathLossFlag = input("Insert Path Loss? (Y)")
 
     if(pathLossFlag.lower() == "y"):
         pathLossFlag = True
@@ -144,7 +150,7 @@ if __name__ == '__main__':
     else:
         pathLossFlag = True
 
-    awgnFlag = input("Insert AWGN? (Y/N)")
+    awgnFlag = input("Insert AWGN? (Y)")
 
     if(awgnFlag.lower() == "y"):
         awgnFlag = True
@@ -153,7 +159,7 @@ if __name__ == '__main__':
     else:
         awgnFlag = True
 
-    writeOutput = input("Write IQ samples output? (Y/N)")
+    writeOutput = input("Write IQ samples output? (N)")
 
     if(writeOutput.lower() == "y"):
         writeOutput = True
@@ -162,10 +168,16 @@ if __name__ == '__main__':
     else:
         writeOutput = False
 
+    #TODO computing input size
+
+
+
 
     ds_wave_list, doppler_shift_vector = simulate_doppler_shift(ds_duration, 180, ds_freq_min, ds_freq_max)
 
     path_loss_vector = simulate_path_loss(pl_duration, 180, pow(10, pl_val_min), pow(10,pl_val_max), ds_freq_max)
+
+
 
     bit_counter = 0
 
@@ -224,8 +236,8 @@ if __name__ == '__main__':
 
         for i in range(len(boc_sequence)):
             index = math.floor(current_time/ds_duration)
-            current_time += 1/(2*BAND+doppler_shift_vector[index])
-            repetitions.append(1/(2*BAND+doppler_shift_vector[index])*F_S)
+            current_time += 1/(2*CHIP_RATE+doppler_shift_vector[index])
+            repetitions.append(1/(2*CHIP_RATE+doppler_shift_vector[index])*F_S)
 
         
 
@@ -244,27 +256,22 @@ if __name__ == '__main__':
 
     iqPlot(boc_output, "IQ samples of the BOC(1,1)", len(boc_output)-1)
 
-    signal = boc_output * ds_wave_list[:len(boc_output)]
+    signal = boc_output * ds_wave_list[:len(boc_output)] 
 
-    iqPlot(signal, "IQ samples with doppler shift", len(signal)-1)
-
-
-    plt.scatter(np.arange(0,len(signal[815000:820000])), np.real(signal[815000:820000]))
-    plt.title("Signal with Doppler Shift")
-    plt.show()
+    iqPlot(signal, "IQ samples with Doppler Shift", len(signal)-1)
 
     # AWGN simulation
 
-    awgn_vector = (np.random.randn(len(signal)) + 1j*np.random.randn(len(signal))) * np.sqrt(N_0*BAND/2)
+    awgn_vector = (np.random.randn(len(signal)) + 1j*np.random.randn(len(signal))) * np.sqrt(N_0/2)
 
 
     if(pathLossFlag):
 
         # Apply Path Loss
 
-        signal = signal * path_loss_vector[:len(signal)]
+        signal = signal * np.sqrt(path_loss_vector[:len(signal)])
 
-        iqPlot(signal, "IQ samples with Path Loss", len(signal)-1)
+        iqPlot(signal, "IQ samples with Doppler Shift and Path Loss", len(signal)-1)
     
     if(awgnFlag):
 
@@ -272,11 +279,15 @@ if __name__ == '__main__':
 
         signal = signal + awgn_vector
 
-        iqPlot(signal, "IQ samples with AWGN", len(signal)-1)
+        iqPlot(signal, "IQ samples with Doppler Shift, Path Loss and AWGN", len(signal)-1)
 
     plt.scatter(np.arange(0,len(signal[814000:820000])), np.real(signal[814000:820000]))
-    plt.title("Signal with Path Loss and AWGN")
+    plt.title("Real part of the sampled signal\n with Doppler shift, Path loss and AWGN")
+    plt.xlabel("n (sample)")
+    plt.ylabel("amplitude")
+    plt.savefig("plots/sampled signal with doppler shift - path loss - awgn.png")
     plt.show()
+
 
     if(writeOutput):
 
@@ -284,12 +295,9 @@ if __name__ == '__main__':
 
         # IQ samples writing
 
-        counter = 0
-
         for signal_bit in signal:
             real_sample = int(quantize_uniform(np.array([np.real(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
             imag_sample = int(quantize_uniform(np.array([np.imag(signal_bit)]), -V_FS, V_FS,pow(2,BIT_FOR_IQ))[0])
             output_file.write(real_sample.to_bytes(2,byteorder='big',signed=True))
             output_file.write(imag_sample.to_bytes(2,byteorder='big',signed=True))
             output_file.flush()
-            counter += 1
