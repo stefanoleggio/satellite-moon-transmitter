@@ -206,7 +206,6 @@ if __name__ == '__main__':
     else:
         writeOutput = False
 
-
     ## Counting previously the message bits for creating the simulation vectors
 
     message_tmp = open("message.bin", "rb")
@@ -216,14 +215,10 @@ if __name__ == '__main__':
     
     ####
 
-
-
     ds_wave_list, doppler_shift_vector = simulate_doppler_shift(ds_duration, input_size, ds_freq_min, ds_freq_max)
 
     path_loss_vector = simulate_path_loss(pl_duration, input_size, pow(10, pl_val_min/10), pow(10,pl_val_max/10), ds_freq_max)
-
-
-
+ 
     bit_counter = 0
     boc_output = []
     current_time = 0
