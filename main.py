@@ -282,7 +282,7 @@ if __name__ == '__main__':
         iqPlot(signal, "IQ samples with Doppler Shift, Path Loss and AWGN", len(signal)-1)
 
     plt.scatter(np.arange(0,len(signal[814000:820000])), np.real(signal[814000:820000]))
-    plt.title("Real part of the sampled signal\n with Doppler shift, Path loss and AWGN")
+    plt.title("Real part of the sampled signal\n with Doppler Shift, Path Loss and AWGN")
     plt.xlabel("n (sample)")
     plt.ylabel("amplitude")
     plt.savefig("plots/sampled signal with doppler shift - path loss - awgn.png")
