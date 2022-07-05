@@ -163,15 +163,15 @@ if __name__ == '__main__':
 
     ds_duration = float(input("Set update period of doppler shift [s] (" + str(ds_duration_default) + "): ") or ds_duration_default) # Set update period of doppler shift (s) 
 
-    pl_duration = float(input("Set update period of doppler shift [s] (" + str(pl_duration_default) + "): ") or pl_duration_default)
+    pl_duration = float(input("Set update period of path loss [s] (" + str(pl_duration_default) + "): ") or pl_duration_default)
 
-    ds_freq_max = int(input("Set Doppler shift max freq [Hz] (" + str(ds_freq_max_default) + "): ") or ds_freq_max_default)
+    ds_freq_max = int(input("Set doppler shift max freq [Hz] (" + str(ds_freq_max_default) + "): ") or ds_freq_max_default)
 
-    ds_freq_min = int(input("Set Doppler shift min freq [Hz] (" + str(ds_freq_min_default) + "): ") or ds_freq_min_default)
+    ds_freq_min = int(input("Set doppler shift min freq [Hz] (" + str(ds_freq_min_default) + "): ") or ds_freq_min_default)
 
-    pl_val_min = float(input("Set Path Loss gain min value [dB] (" + str(pl_val_min_default) + "): ") or pl_val_min_default)
+    pl_val_min = float(input("Set path loss gain min value [dB] (" + str(pl_val_min_default) + "): ") or pl_val_min_default)
 
-    pl_val_max = float(input("Set Path Loss gain max value [dB] (" + str(pl_val_max_default) + "): ") or pl_val_max_default)
+    pl_val_max = float(input("Set path loss gain max value [dB] (" + str(pl_val_max_default) + "): ") or pl_val_max_default)
 
     snr =  float(input("Set SNR value [dB] (" + str(snr_default) + "): ") or snr_default)
 
